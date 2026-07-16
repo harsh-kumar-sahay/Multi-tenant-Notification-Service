@@ -55,11 +55,10 @@ public class NotificationDispatchService {
         List<NotificationRequest> claimed = notificationRequestRepository.claimReadyForTenant(tenantId, Instant.now(), batchSize);
         List<ClaimedNotification> toDispatch = new ArrayList<>();
         for (NotificationRequest notification : claimed) {
-            if (!rateLimiterRegistry.tryAcquire(tenantId, notification.getChannelType())) {
+            if (!rateLimiterRegistry.tryAcquire(tenantId)) {
                 continue;
             }
             notification.setStatus(NotificationStatus.SENDING);
-            notification.setClaimedBy(workerId);
             notification.setAttemptCount(notification.getAttemptCount() + 1);
             notificationRequestRepository.save(notification);
             toDispatch.add(new ClaimedNotification(notification.getId(), notification.getChannelType()));

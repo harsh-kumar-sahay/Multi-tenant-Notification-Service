@@ -69,10 +69,6 @@ public class NotificationRequest {
     @Column(name = "max_attempts", nullable = false)
     private int maxAttempts = 5;
 
-    /** Set when a worker claims the row for dispatch; helps diagnose stuck SENDING rows. */
-    @Column(name = "claimed_by")
-    private String claimedBy;
-
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;
@@ -104,8 +100,6 @@ public class NotificationRequest {
     public void setAttemptCount(int attemptCount) { this.attemptCount = attemptCount; }
     public int getMaxAttempts() { return maxAttempts; }
     public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
-    public String getClaimedBy() { return claimedBy; }
-    public void setClaimedBy(String claimedBy) { this.claimedBy = claimedBy; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

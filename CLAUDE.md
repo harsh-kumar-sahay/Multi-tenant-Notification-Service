@@ -16,7 +16,6 @@ Context for AI-assisted development on this project.
 - `Template` — per-tenant, per-channel, variable placeholders (`{{var}}`), versioned
 - `NotificationRequest` — the send intent: tenant, template, channel, recipient, variables (JSON), scheduled_at, idempotency_key, status, priority
 - `DeliveryAttempt` — one row per dispatch attempt: attempt number, status, error, timestamps, worker id — audit trail
-- `RateLimitPolicy` — per-tenant per-channel throughput limits
 
 Status flow: `PENDING -> SENDING -> SENT/DELIVERED`, or `FAILED -> RETRY_SCHEDULED -> PENDING` (loop until max attempts), or `DEAD_LETTER`.
 
@@ -24,9 +23,9 @@ Status flow: `PENDING -> SENDING -> SENT/DELIVERED`, or `FAILED -> RETRY_SCHEDUL
 - Claim pattern for dispatch: `SELECT ... FOR UPDATE SKIP LOCKED` — never claim a row two workers might both process.
 - One bounded `ThreadPoolExecutor` per channel type; sizes configurable via properties.
 - Idempotency: unique constraint `(tenant_id, idempotency_key)` prevents duplicate creation; status check before dispatch prevents duplicate send on retry.
-- Rate limiting: in-memory token bucket per (tenant, channel). Over-limit requests stay PENDING for next poll cycle — never block a worker thread waiting on a limiter.
+- Rate limiting: in-memory token bucket per tenant (capacity = tenant's `globalRateLimitPerMinute`, default 60). Over-limit requests stay PENDING for next poll cycle — never block a worker thread waiting on a limiter.
 - Fairness: poller pulls top-N pending per tenant round-robin, not global FIFO, so one tenant's backlog can't starve others.
-- Retry: exponential backoff + jitter, `next_attempt_at` column drives re-pickup, max attempts configurable per tenant/channel.
+- Retry: exponential backoff + jitter, `next_attempt_at` column drives re-pickup, max attempts configurable per notification.
 
 ## Conventions
 - Package layout: `com.notifsvc.{tenant,user,channel,template,notification,delivery,auth,config}` — one package per bounded concept, not per layer.

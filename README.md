@@ -40,8 +40,8 @@ a persisted delivery audit trail.
   template), recipient, variables, `scheduledAt`, `idempotencyKey` (unique per tenant),
   status, attempt count/max, `nextAttemptAt`.
 - **DeliveryAttempt** — one immutable row per dispatch attempt (success/failure, error,
-  worker id, timestamps) — the audit trail.
-- **RateLimitPolicy** — optional per-tenant per-channel override of the default rate limit.
+  worker id, timestamps) — the audit trail and the single source of truth for which worker
+  handled which attempt.
 
 Status flow: `PENDING → SENDING → DELIVERED`, or `... → FAILED → RETRY_SCHEDULED → SENDING`
 (looping until `maxAttempts`), or `→ DEAD_LETTER`. `CANCELLED` is a terminal state reachable
@@ -59,10 +59,12 @@ from `PENDING`/`RETRY_SCHEDULED` only.
   (`notifsvc.dispatch.batch-size-per-tenant`) per tenant per cycle, rather than draining one
   tenant's entire backlog first — over several poll cycles this round-robins fairly across
   tenants instead of letting one noisy tenant monopolize the workers.
-- **Rate limiting**: an in-memory token bucket per (tenant, channel)
-  (`RateLimiterRegistry`/`TokenBucket`), refilling continuously based on elapsed time. If a
-  claimed row is over its tenant's limit, it's left untouched (still `PENDING`) for the next
-  poll cycle rather than blocking a worker thread on it.
+- **Rate limiting**: an in-memory token bucket per tenant (`RateLimiterRegistry`/
+  `TokenBucket`), capacity equal to the tenant's `globalRateLimitPerMinute` (default 60),
+  refilling continuously based on elapsed time. If a claimed row is over its tenant's limit,
+  it's left untouched (still `PENDING`) for the next poll cycle rather than blocking a worker
+  thread on it. Changing a tenant's limit via `PATCH /api/tenants/{id}` invalidates its
+  cached bucket immediately.
 - **Retry/backoff**: on failure, `BackoffCalculator` computes an exponential delay (capped,
   with up to 20% jitter) and sets `nextAttemptAt`; the row goes back to `RETRY_SCHEDULED` and
   is picked up again once ready. After `maxAttempts`, it's marked `DEAD_LETTER`.
@@ -93,8 +95,10 @@ from `PENDING`/`RETRY_SCHEDULED` only.
 - **Template variable validation happens at creation time**: `NotificationService.create`
   renders the template against the supplied variables before persisting, so a request with
   a missing variable fails fast with 400 instead of silently failing at dispatch time later.
-- **Rate limit resolution order**: a channel-specific `RateLimitPolicy` if one exists,
-  otherwise the tenant's `globalRateLimitPerMinute`, otherwise a default of 60/minute.
+- **Rate limiting is per-tenant, not per-tenant-per-channel**: the PDF asks for "per-tenant
+  rate limiting", so the limit is one bucket per tenant (`globalRateLimitPerMinute`, default
+  60/minute) shared across all of that tenant's channels, rather than a separate limit per
+  channel — simpler, and matches the literal requirement without unused generality.
 - **Cancellation** is only allowed from `PENDING`/`RETRY_SCHEDULED`; cancelling anything else
   (already sending, delivered, dead-lettered, or already cancelled) is a 409 conflict rather
   than a silent no-op.
