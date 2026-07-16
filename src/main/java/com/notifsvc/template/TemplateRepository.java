@@ -8,7 +8,9 @@ import java.util.Optional;
 
 public interface TemplateRepository extends JpaRepository<Template, Long> {
     List<Template> findByTenantId(Long tenantId);
+    List<Template> findByTenantIdAndActiveTrue(Long tenantId);
     List<Template> findByTenantIdAndChannelType(Long tenantId, ChannelType channelType);
+    List<Template> findByTenantIdAndNameOrderByVersionDesc(Long tenantId, String name);
     Optional<Template> findTopByTenantIdAndNameOrderByVersionDesc(Long tenantId, String name);
     Optional<Template> findByIdAndTenantId(Long id, Long tenantId);
 }
