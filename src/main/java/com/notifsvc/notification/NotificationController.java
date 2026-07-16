@@ -1,6 +1,8 @@
 package com.notifsvc.notification;
 
 import com.notifsvc.auth.CurrentUser;
+import com.notifsvc.channel.ChannelType;
+import com.notifsvc.delivery.DeliveryAttemptResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,15 +31,26 @@ public class NotificationController {
     }
 
     @GetMapping
-    public List<NotificationResponse> list() {
+    public List<NotificationResponse> list(
+            @RequestParam(required = false) NotificationStatus status,
+            @RequestParam(required = false) ChannelType channelType) {
         Long tenantId = CurrentUser.get().getTenantId();
-        return notificationService.listForTenant(tenantId).stream().map(NotificationResponse::from).toList();
+        if (status == null && channelType == null) {
+            return notificationService.listForTenant(tenantId).stream().map(NotificationResponse::from).toList();
+        }
+        return notificationService.search(tenantId, status, channelType).stream().map(NotificationResponse::from).toList();
     }
 
     @GetMapping("/{id}")
     public NotificationResponse getById(@PathVariable Long id) {
         Long tenantId = CurrentUser.get().getTenantId();
         return NotificationResponse.from(notificationService.getForTenant(tenantId, id));
+    }
+
+    @GetMapping("/{id}/attempts")
+    public List<DeliveryAttemptResponse> attempts(@PathVariable Long id) {
+        Long tenantId = CurrentUser.get().getTenantId();
+        return notificationService.attemptsForNotification(tenantId, id).stream().map(DeliveryAttemptResponse::from).toList();
     }
 
     @PatchMapping("/{id}/cancel")

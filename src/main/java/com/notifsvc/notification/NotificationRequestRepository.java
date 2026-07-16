@@ -1,11 +1,9 @@
 package com.notifsvc.notification;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +40,26 @@ public interface NotificationRequestRepository extends JpaRepository<Notificatio
     @Query("SELECT DISTINCT n.tenant.id FROM NotificationRequest n WHERE n.status IN ('PENDING', 'RETRY_SCHEDULED') AND n.scheduledAt <= :now")
     List<Long> findTenantIdsWithReadyWork(@Param("now") Instant now);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT n FROM NotificationRequest n WHERE n.id = :id")
-    Optional<NotificationRequest> findByIdForUpdate(@Param("id") Long id);
+    @Query("""
+            SELECT n FROM NotificationRequest n
+            WHERE n.tenant.id = :tenantId
+              AND (:status IS NULL OR n.status = :status)
+              AND (:channelType IS NULL OR n.channelType = :channelType)
+            ORDER BY n.createdAt DESC
+            """)
+    List<NotificationRequest> search(@Param("tenantId") Long tenantId,
+                                      @Param("status") NotificationStatus status,
+                                      @Param("channelType") com.notifsvc.channel.ChannelType channelType);
+
+    @Query("""
+            SELECT new com.notifsvc.notification.StatusCount(n.status, COUNT(n))
+            FROM NotificationRequest n WHERE n.tenant.id = :tenantId GROUP BY n.status
+            """)
+    List<StatusCount> countByStatusForTenant(@Param("tenantId") Long tenantId);
+
+    @Query("""
+            SELECT new com.notifsvc.notification.ChannelCount(n.channelType, COUNT(n))
+            FROM NotificationRequest n WHERE n.tenant.id = :tenantId GROUP BY n.channelType
+            """)
+    List<ChannelCount> countByChannelForTenant(@Param("tenantId") Long tenantId);
 }
