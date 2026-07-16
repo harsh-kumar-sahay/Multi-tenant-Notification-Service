@@ -42,7 +42,7 @@ public class NotificationRequest {
     @Column(nullable = false)
     private String recipient;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "notification_variables", joinColumns = @JoinColumn(name = "notification_id"))
     @MapKeyColumn(name = "var_key")
     @Column(name = "var_value", length = 2000)

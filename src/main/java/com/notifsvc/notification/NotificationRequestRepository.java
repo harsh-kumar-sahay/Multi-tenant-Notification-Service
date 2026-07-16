@@ -18,6 +18,8 @@ public interface NotificationRequestRepository extends JpaRepository<Notificatio
 
     boolean existsByTenantIdAndIdempotencyKey(Long tenantId, String idempotencyKey);
 
+    Optional<NotificationRequest> findByTenantIdAndIdempotencyKey(Long tenantId, String idempotencyKey);
+
     /**
      * Fetch up to `limit` ready rows for one tenant, locking them so no other worker/poller
      * thread can claim the same rows concurrently. SKIP LOCKED means a busy row is simply
