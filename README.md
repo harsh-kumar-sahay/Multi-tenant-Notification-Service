@@ -85,7 +85,7 @@ from `PENDING`/`RETRY_SCHEDULED` only.
 - **Bootstrap platform admin**: a fresh database has no users, so nobody could create the
   first tenant admin. `BootstrapDataInitializer` seeds one platform admin
   (`notifsvc.bootstrap.platform-admin-username`/`-password`, default `admin` /
-  `ChangeMe123!`) on first startup if none exists. Change the password after first login in
+  `HarshPassword`) on first startup if none exists. Change the password after first login in
   any real deployment.
 - **JWT claims, not per-request DB lookups**: after login, the JWT carries role and tenantId
   claims and `JwtAuthFilter` trusts them directly rather than re-querying the user on every
