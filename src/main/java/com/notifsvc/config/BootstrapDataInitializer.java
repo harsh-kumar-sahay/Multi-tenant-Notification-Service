@@ -29,7 +29,7 @@ public class BootstrapDataInitializer implements ApplicationRunner {
             AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
             @Value("${notifsvc.bootstrap.platform-admin-username:admin}") String bootstrapUsername,
-            @Value("${notifsvc.bootstrap.platform-admin-password:ChangeMe123!}") String bootstrapPassword) {
+            @Value("${notifsvc.bootstrap.platform-admin-password:HarshPassword}") String bootstrapPassword) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.bootstrapUsername = bootstrapUsername;
